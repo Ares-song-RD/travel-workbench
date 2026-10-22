@@ -1,0 +1,1590 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="旅途记录工作台">
+<title>旅途记录工作台</title>
+<style>
+:root{
+  --bg:#eef2f7; --card:#ffffff; --ink:#1e293b; --ink2:#64748b; --ink3:#94a3b8;
+  --line:#e6ebf2; --brand:#2563eb; --brand-soft:#eef4ff;
+  --accent:#0d9488; --accent-deep:#0b7c74; --accent-soft:#e6f7f4;
+  --up:#dc2626; --warn:#f59e0b; --danger:#ef4444;
+  --r:16px; --shadow:0 1px 2px rgba(16,24,40,.04),0 10px 30px rgba(16,24,40,.06);
+  --shadow-sm:0 1px 2px rgba(16,24,40,.06);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  background:
+    radial-gradient(1200px 500px at 15% -10%, rgba(13,148,136,.08), transparent 60%),
+    radial-gradient(1000px 500px at 90% -10%, rgba(37,99,235,.06), transparent 55%),
+    var(--bg);
+  color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  font-size:15px; line-height:1.55; padding-bottom:40px;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,p,ul{margin:0}
+ul{padding:0;list-style:none}
+button{font-family:inherit;font-size:15px;cursor:pointer;border:0;background:none;color:inherit}
+input,select,textarea{font-family:inherit;font-size:16px;color:var(--ink)}
+svg{display:block}
+.wrap{max-width:1180px;margin:0 auto;padding:0 16px}
+
+/* ---------- topbar ---------- */
+.topbar{
+  background:linear-gradient(120deg,#0b7c74 0%,#0d9488 45%,#14b8a6 100%);
+  color:#fff;padding:16px 0 18px;
+  box-shadow:0 6px 24px rgba(13,148,136,.22);
+  position:relative;overflow:hidden;
+}
+.topbar::after{
+  content:'';position:absolute;right:-60px;top:-80px;width:280px;height:280px;border-radius:50%;
+  background:radial-gradient(circle,rgba(255,255,255,.14),transparent 70%);pointer-events:none;
+}
+.topbar .wrap{display:flex;align-items:center;gap:12px;flex-wrap:wrap;position:relative;z-index:1}
+.brand{display:flex;align-items:center;gap:10px;font-size:19px;font-weight:700;letter-spacing:.4px}
+.brand svg{width:26px;height:26px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.15))}
+.topbar-spacer{flex:1}
+.sync{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;background:rgba(255,255,255,.16);
+  padding:6px 12px;border-radius:999px;white-space:nowrap;backdrop-filter:blur(4px)}
+.sync i{width:8px;height:8px;border-radius:50%;background:#4ade80;display:block;box-shadow:0 0 0 3px rgba(74,222,128,.25)}
+.tb-actions{display:flex;gap:8px;flex-wrap:wrap}
+.tb-btn{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.14);color:#fff;
+  border-radius:10px;padding:0 13px;min-height:38px;font-size:13.5px;transition:background .18s,transform .18s;
+  border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(4px)}
+.tb-btn:hover{background:rgba(255,255,255,.26);transform:translateY(-1px)}
+.tb-btn:active{transform:translateY(0)}
+.tb-btn svg{width:15px;height:15px}
+
+/* ---------- layout ---------- */
+.layout{display:grid;grid-template-columns:1fr 390px;gap:18px;margin-top:18px;align-items:start}
+@media(max-width:900px){.layout{grid-template-columns:1fr}}
+
+/* ---------- map card ---------- */
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:18px}
+.map-card{padding:16px}
+.map-head{display:flex;align-items:center;gap:9px;margin-bottom:10px}
+.map-head h3{font-size:16px;font-weight:700;letter-spacing:.2px}
+.map-head svg{width:18px;height:18px;color:var(--accent)}
+.map-hint{margin-left:auto;font-size:12.5px;color:var(--ink3);background:#f1f5f9;padding:4px 11px;border-radius:999px}
+
+/* 地图配色 */
+#map-svg{width:100%;height:auto;cursor:pointer}
+.province{fill:#e6edf6;stroke:#ffffff;stroke-width:.7;transition:fill .18s,stroke .18s}
+.province:hover{fill:#d3e0f0}
+.province.visited{fill:#bfe8df}
+.province.visited:hover{fill:#a9dcd0}
+.province.active{fill:#0d9488;stroke:#0d9488}
+.province.active:hover{fill:#0d9488}
+.south-mini path.province{fill:#5ec5b5;stroke:#0d9488;stroke-width:.4}
+.south-mini path.province.visited{fill:#0d9488}
+.sea{fill:#dbe6f1;stroke:#c7d7e8;stroke-width:.6;pointer-events:none}
+.city-dot{fill:#f59e0b;stroke:#fff;stroke-width:1.4;cursor:pointer;transition:r .12s;
+  filter:drop-shadow(0 1px 1px rgba(0,0,0,.12))}
+.city-dot:hover{r:6}
+.city-dot.has{fill:#ef4444}
+.city-label{font-size:10px;fill:#3b4a5a;pointer-events:none;font-weight:600;text-anchor:middle;
+  paint-order:stroke;stroke:#ffffff;stroke-width:3px;stroke-linejoin:round;letter-spacing:.2px}
+.city-label.has{fill:#dc2626;font-weight:700}
+.prov-label{font-size:13.5px;fill:#38465a;pointer-events:none;font-weight:650;text-anchor:middle;
+  paint-order:stroke;stroke:#ffffff;stroke-width:2.5px;stroke-linejoin:round;letter-spacing:.5px}
+.prov-label.has{fill:#0d9488;font-weight:700}
+
+.legend{display:flex;gap:18px;font-size:12.5px;color:var(--ink2);margin-top:12px;flex-wrap:wrap;
+  padding-top:12px;border-top:1px solid #f0f3f8}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend em{width:11px;height:11px;border-radius:3px;display:block;box-shadow:inset 0 0 0 1px rgba(0,0,0,.04)}
+
+/* ---------- 地图缩放/下钻控件 ---------- */
+.map-wrap{position:relative}
+.map-toolbar{display:flex;align-items:center;gap:6px;margin-bottom:6px;flex-wrap:wrap}
+.map-breadcrumb{font-size:13px;color:var(--ink2);display:inline-flex;align-items:center;gap:5px;flex-wrap:wrap;
+  background:#f8fafc;padding:5px 12px;border-radius:10px;border:1px solid #eef1f6}
+.map-breadcrumb .crumb{cursor:pointer;color:var(--accent);font-weight:600}
+.map-breadcrumb .crumb:hover{text-decoration:underline}
+.map-breadcrumb .sep{color:var(--ink3)}
+.zoom-bar{position:absolute;right:12px;top:12px;display:flex;flex-direction:column;gap:6px;z-index:5}
+.zoom-bar button{width:34px;height:34px;border-radius:10px;background:#fff;border:1px solid var(--line);
+  box-shadow:var(--shadow-sm);display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--ink);font-weight:600;
+  transition:all .15s}
+.zoom-bar button:hover{background:#f1f5f9;color:var(--accent);transform:scale(1.05)}
+.zoom-bar button:active{transform:scale(.96)}
+.zoom-bar button svg{width:16px;height:16px}
+#map-svg{width:100%;height:auto;cursor:grab;display:block}
+#map-svg:active{cursor:grabbing}
+
+/* ---------- right panel ---------- */
+.side{display:flex;flex-direction:column;gap:16px}
+.side .card{padding:18px}
+
+/* ---------- city detail ---------- */
+.city-head{display:flex;align-items:flex-start;gap:12px}
+.city-head .av{flex:none;width:46px;height:46px;border-radius:13px;
+  background:linear-gradient(135deg,#0d9488,#14b8a6);color:#fff;
+  display:flex;align-items:center;justify-content:center;font-size:21px;font-weight:700;
+  box-shadow:0 4px 10px rgba(13,148,136,.28)}
+.city-head h3{font-size:20px;font-weight:700;line-height:1.3;letter-spacing:.2px}
+.city-head .sub{font-size:12.5px;color:var(--ink3);margin-top:3px}
+.city-meta{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.chip{font-size:11.5px;padding:4px 10px;border-radius:7px;background:#f1f5f9;color:var(--ink2);font-weight:500}
+.chip.acc{background:var(--accent-soft);color:var(--accent-deep)}
+.chip.warn{background:#fff7ed;color:#c2410c}
+hr{border:0;border-top:1px solid #f0f3f8;margin:16px 0}
+
+/* ---------- spots ---------- */
+.spot{background:#fafbfd;border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:11px;
+  transition:box-shadow .18s,border-color .18s}
+.spot:last-child{margin-bottom:0}
+.spot:hover{box-shadow:var(--shadow-sm);border-color:#dde5ef}
+.spot-top{display:flex;align-items:center;gap:8px}
+.spot-name{font-size:15px;font-weight:700;color:var(--ink)}
+.spot-date{font-size:11.5px;color:var(--accent);background:var(--accent-soft);padding:2px 8px;border-radius:6px;font-weight:600;display:inline-flex;align-items:center;gap:4px;margin-left:6px}
+.spot-del{margin-left:auto;flex:none;width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--ink3);transition:all .15s}
+.spot-del:hover{background:#fee2e2;color:var(--danger)}
+.spot-del svg{width:15px;height:15px}
+.spot-desc{font-size:13.5px;color:var(--ink2);margin-top:7px;white-space:pre-wrap;word-break:break-word;line-height:1.6}
+.spot-tags{display:flex;gap:6px;margin-top:9px;flex-wrap:wrap}
+.tag{font-size:11px;padding:3px 9px;border-radius:7px;background:var(--brand-soft);color:var(--brand);font-weight:500}
+.spot-imgs{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:8px;margin-top:11px}
+.spot-imgs .im{position:relative;aspect-ratio:1;border-radius:10px;overflow:hidden;border:1px solid var(--line);background:#eef2f7}
+.spot-imgs img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .25s}
+.spot-imgs .im:hover img{transform:scale(1.06)}
+.spot-imgs .im-x{position:absolute;top:4px;right:4px;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;line-height:1;transition:background .15s}
+.spot-imgs .im-x:hover{background:rgba(239,68,68,.9)}
+.spot-act{display:flex;gap:8px;margin-top:12px}
+.spot-act .btn{padding:0 13px;min-height:34px;font-size:12.5px}
+
+/* ---------- buttons / forms ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:42px;padding:0 16px;
+  border-radius:11px;background:linear-gradient(135deg,#0d9488,#0ea5a0);color:#fff;font-size:14px;font-weight:600;
+  transition:transform .15s,box-shadow .15s,filter .15s;box-shadow:0 3px 8px rgba(13,148,136,.22)}
+.btn:hover{filter:brightness(1.05);transform:translateY(-1px);box-shadow:0 5px 14px rgba(13,148,136,.3)}
+.btn:active{transform:translateY(0)}
+.btn svg{width:16px;height:16px}
+.btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line);box-shadow:none;font-weight:500}
+.btn.ghost:hover{background:#f8fafc;filter:none;transform:none;box-shadow:var(--shadow-sm)}
+.btn.sm{min-height:36px;padding:0 13px;font-size:13px;border-radius:10px;box-shadow:none}
+.btn.sm:hover{transform:none}
+.btn.danger{background:#fff;color:var(--danger);border:1px solid #fecaca;box-shadow:none}
+.btn.danger:hover{background:#fef2f2;filter:none}
+.btn.block{width:100%}
+.f label{display:block;font-size:12.5px;color:var(--ink2);margin-bottom:6px;font-weight:500}
+.f input,.f select,.f textarea{width:100%;border:1px solid var(--line);border-radius:11px;padding:10px 13px;
+  background:#fbfcfe;outline:none;min-height:42px;transition:border-color .15s,box-shadow .15s,background .15s}
+.f input:focus,.f select:focus,.f textarea:focus{border-color:var(--accent);background:#fff;box-shadow:0 0 0 3px rgba(13,148,136,.12)}
+.f textarea{min-height:72px;resize:vertical;line-height:1.6}
+.form-grid{display:grid;gap:13px}
+.form-foot{display:flex;gap:10px;flex-wrap:wrap;padding-top:2px}
+
+/* ---------- stats ---------- */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.stat{background:#f8fafc;border:1px solid var(--line);border-radius:12px;padding:12px;text-align:center}
+.stat b{display:block;font-size:21px;font-weight:700;color:var(--accent)}
+.stat i{font-style:normal;font-size:11.5px;color:var(--ink3)}
+
+/* ---------- empty ---------- */
+.empty{padding:30px 8px;color:var(--ink3);font-size:14px;text-align:center;line-height:1.6}
+.empty svg{width:38px;height:38px;margin:0 auto 10px;color:#cbd5e1}
+
+/* ---------- toast / modal ---------- */
+#toast{position:fixed;left:50%;bottom:40px;transform:translateX(-50%);z-index:99;background:rgba(17,24,39,.92);
+  color:#fff;padding:12px 20px;border-radius:12px;font-size:14px;opacity:0;pointer-events:none;
+  transition:opacity .25s,transform .25s;box-shadow:0 8px 24px rgba(0,0,0,.2)}
+#toast.on{opacity:1;transform:translateX(-50%) translateY(-4px)}
+#mask{position:fixed;inset:0;z-index:100;background:rgba(15,23,42,.45);display:none;align-items:center;justify-content:center;padding:18px;
+  backdrop-filter:blur(2px)}
+#mask.on{display:flex}
+.modal{background:#fff;border-radius:18px;padding:22px;max-width:440px;width:100%;box-shadow:0 24px 60px rgba(0,0,0,.22);max-height:86vh;overflow:auto}
+.modal.modal-wide{max-width:640px}
+.modal h3{font-size:18px;margin-bottom:12px;font-weight:700}
+.modal .row{display:flex;gap:10px;justify-content:flex-end;margin-top:18px}
+.hidden{display:none !important}
+footer{color:var(--ink3);font-size:12.5px;text-align:center;padding:26px 0 10px}
+
+/* ================= 数据大屏 ================= */
+#dashboard{display:none;min-height:100vh;padding:0 0 40px}
+#dashboard.on{display:block}
+.dash-top{display:flex;align-items:center;gap:14px;padding:16px 20px;flex-wrap:wrap}
+.dash-title{display:flex;align-items:center;gap:10px;font-size:18px;font-weight:700;color:var(--ink)}
+.dash-title svg{width:22px;height:22px;color:var(--accent)}
+.dash-title .sub{font-size:12.5px;color:var(--ink3);font-weight:400;margin-left:2px}
+.dash-back{margin-left:auto;display:inline-flex;align-items:center;gap:6px;min-height:38px;padding:0 15px;
+  border-radius:10px;border:1px solid var(--line);background:#fff;color:var(--ink);font-size:13.5px;font-weight:500;
+  cursor:pointer;transition:all .15s}
+.dash-back:hover{background:#f8fafc;color:var(--accent)}
+.dash-back svg{width:16px;height:16px}
+
+.dash-wrap{max-width:1200px;margin:0 auto;padding:0 16px}
+/* 关键数字卡片 */
+.dash-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px}
+@media(max-width:800px){.dash-kpis{grid-template-columns:repeat(2,1fr)}}
+.kpi{background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px 20px;position:relative;overflow:hidden;box-shadow:var(--shadow)}
+.kpi::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(180deg,#0d9488,#14b8a6)}
+.kpi .k-label{font-size:12.5px;color:var(--ink2);display:flex;align-items:center;gap:6px}
+.kpi .k-label svg{width:15px;height:15px;color:var(--accent)}
+.kpi .k-val{font-size:34px;font-weight:800;color:var(--ink);margin-top:6px;line-height:1;letter-spacing:-.5px}
+.kpi .k-val small{font-size:14px;font-weight:600;color:var(--ink3);margin-left:2px}
+.kpi .k-foot{font-size:11.5px;color:var(--ink3);margin-top:8px}
+
+/* 大屏主体网格 */
+.dash-grid{display:grid;grid-template-columns:260px 1fr 280px;gap:14px}
+@media(max-width:1000px){.dash-grid{grid-template-columns:1fr}}
+.dash-panel{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:var(--shadow)}
+.dash-panel h4{font-size:14px;font-weight:700;color:var(--ink);display:flex;align-items:center;gap:7px;margin-bottom:14px}
+.dash-panel h4 svg{width:16px;height:16px;color:var(--accent)}
+.dash-panel h4 .n{margin-left:auto;font-size:11px;color:var(--ink3);font-weight:500}
+
+/* 省份排名 */
+.rank-list{display:flex;flex-direction:column;gap:8px}
+.rank-item{display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:11px;background:#f8fafc;transition:background .15s}
+.rank-item:hover{background:#f1f5f9}
+.rank-idx{flex:none;width:24px;height:24px;border-radius:7px;background:#e2e8f0;color:var(--ink2);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.rank-item:nth-child(1) .rank-idx{background:#0d9488;color:#fff}
+.rank-item:nth-child(2) .rank-idx{background:#2dd4bf;color:#fff}
+.rank-item:nth-child(3) .rank-idx{background:#99f6e4;color:#0b7c74}
+.rank-info{flex:1;min-width:0}
+.rank-name{font-size:13.5px;font-weight:600;color:var(--ink)}
+.rank-sub{font-size:11px;color:var(--ink3)}
+.rank-bar{flex:none;width:56px;height:6px;border-radius:3px;background:#eef2f7;overflow:hidden}
+.rank-bar i{display:block;height:100%;border-radius:3px;background:linear-gradient(90deg,#0d9488,#14b8a6)}
+.rank-num{flex:none;font-size:13px;font-weight:700;color:var(--accent);min-width:28px;text-align:right}
+
+/* 标签云 */
+.tag-cloud{display:flex;flex-wrap:wrap;gap:8px;align-content:flex-start}
+.tag-cloud .tc{padding:5px 13px;border-radius:999px;font-size:12.5px;font-weight:500;cursor:default;transition:transform .12s}
+.tag-cloud .tc:hover{transform:scale(1.06)}
+.tc-0{background:#e6f7f4;color:#0b7c74}
+.tc-1{background:#eef4ff;color:#2563eb}
+.tc-2{background:#fff7ed;color:#c2410c}
+.tc-3{background:#fdf2f8;color:#be185d}
+.tc-4{background:#f0fdf4;color:#15803d}
+
+/* 时间轴 */
+.timeline{display:flex;flex-direction:column;gap:0;position:relative;padding-left:6px}
+.tl-item{position:relative;padding:0 0 18px 22px;border-left:2px solid #e2e8f0}
+.tl-item:last-child{border-left-color:transparent}
+.tl-item::before{content:'';position:absolute;left:-6px;top:4px;width:11px;height:11px;border-radius:50%;background:#fff;border:2.5px solid #0d9488}
+.tl-date{font-size:11.5px;color:var(--ink3);font-weight:600;margin-bottom:2px}
+.tl-name{font-size:13.5px;font-weight:700;color:var(--ink)}
+.tl-sub{font-size:12px;color:var(--ink2)}
+.tl-spots{font-size:11.5px;color:var(--accent);font-weight:600;margin-top:2px}
+
+/* 大屏足迹地图 */
+.dash-map{min-height:460px}
+.dash-map #map-svg{cursor:default}
+.dash-map .province{fill:#e6edf6}
+.dash-map .province.visited{fill:#a7e0d6}
+.dash-map .province.visited:hover{fill:#a7e0d6}
+.dash-map .province:hover{fill:#d3e0f0}
+.dash-empty{padding:40px 20px;text-align:center;color:var(--ink3)}
+.dash-empty svg{width:48px;height:48px;margin:0 auto 12px;color:#cbd5e1}
+.dash-empty p{font-size:14px}
+.dash-empty a{color:var(--accent);cursor:pointer;font-weight:600}
+
+/* 底部时间轴行 */
+.dash-bottom{display:grid;grid-template-columns:1fr;gap:14px;margin-top:14px}
+
+/* 详情面板 */
+.dash-detail{margin-top:14px}
+.dash-detail-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.dash-detail-head h4{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:700;color:var(--ink);margin:0}
+.dash-detail-head h4 svg{width:17px;height:17px;color:var(--accent)}
+.dash-detail-head h4 span{color:var(--accent)}
+.dash-detail-close{width:30px;height:30px;border-radius:8px;border:1px solid var(--line);background:#fff;color:var(--ink3);
+  font-size:20px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.dash-detail-close:hover{background:#f1f5f9;color:var(--ink)}
+.dd-city{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:4px}
+.dd-city-group{background:#f8fafc;border:1px solid var(--line);border-radius:12px;padding:13px 15px;flex:1 1 320px;min-width:280px}
+.dd-city-name{font-size:14px;font-weight:700;color:var(--ink);display:flex;align-items:center;gap:7px;margin-bottom:8px}
+.dd-city-name .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);display:inline-block}
+.dd-city-name .cnt{font-size:11px;color:var(--ink3);font-weight:500;margin-left:auto}
+.dd-spot{display:flex;align-items:flex-start;gap:9px;padding:7px 0;border-top:1px dashed #e8ecf3}
+.dd-spot:first-of-type{border-top:0}
+.dd-spot .s-thumb{flex:none;width:42px;height:42px;border-radius:8px;overflow:hidden;background:#eef2f7;border:1px solid var(--line)}
+.dd-spot .s-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.dd-spot .s-thumb .ph{width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#cbd5e1}
+.dd-spot .s-thumb .ph svg{width:18px;height:18px}
+.dd-spot-info{flex:1;min-width:0}
+.dd-spot-name{font-size:13px;font-weight:600;color:var(--ink)}
+.dd-spot-date{font-size:11px;color:var(--accent);font-weight:600;margin-top:1px}
+.dd-spot-desc{font-size:12px;color:var(--ink2);margin-top:1px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.dd-spot-tags{display:flex;gap:5px;margin-top:4px;flex-wrap:wrap}
+.dd-spot-tags .t{font-size:10.5px;padding:1px 7px;border-radius:5px;background:var(--brand-soft);color:var(--brand)}
+.dd-empty{padding:26px;text-align:center;color:var(--ink3);font-size:13.5px}
+.dd-prov-summary{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.dd-stat{background:#f8fafc;border:1px solid var(--line);border-radius:10px;padding:9px 14px;text-align:center;min-width:90px}
+.dd-stat b{display:block;font-size:18px;font-weight:700;color:var(--accent)}
+.dd-stat i{font-style:normal;font-size:11px;color:var(--ink3)}
+
+/* 可点击提示 */
+.rank-item{cursor:pointer}
+.tl-item{cursor:pointer}
+.dash-map #map-svg{cursor:pointer}
+.dash-map .province{cursor:pointer}
+.dash-map .city-dot{cursor:pointer}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wrap">
+    <div class="brand">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/><path d="M2 12h20"/></svg>
+      旅途记录工作台
+    </div>
+    <div class="topbar-spacer"></div>
+    <div class="sync" id="sync-badge"><i></i><span id="sync-text">本地存储</span></div>
+    <div class="tb-actions">
+      <button class="tb-btn" id="btn-dashboard" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>数据大屏</button>
+      <button class="tb-btn" id="btn-export" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M8 11l4 4 4-4"/><path d="M4 17v3h16v-3"/></svg>导出备份</button>
+      <button class="tb-btn" id="btn-import" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="M8 7l4-4 4 4"/><path d="M4 17v3h16v-3"/></svg>导入恢复</button>
+      <input type="file" id="file-import" accept="application/json,.json" class="hidden">
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="layout">
+    <!-- 左：地图 -->
+    <section class="card map-card">
+      <div class="map-head">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>
+        <h3>中国地图</h3>
+        <span class="map-hint" id="map-hint">点击省份 / 城市查看</span>
+      </div>
+      <div class="map-wrap">
+        <div class="map-toolbar">
+          <div class="map-breadcrumb" id="map-crumb"></div>
+        </div>
+        <div class="zoom-bar">
+          <button id="zoom-in" type="button" title="放大"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg></button>
+          <button id="zoom-out" type="button" title="缩小"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"/></svg></button>
+          <button id="zoom-reset" type="button" title="复位"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 2.6-6.3"/><path d="M3 4v5h5"/></svg></button>
+        </div>
+        <div id="map-container"></div>
+      </div>
+      <div class="legend">
+        <span><em style="background:#0d9488"></em>当前选中</span>
+        <span><em style="background:#a7e0d6"></em>已有记录</span>
+        <span><em style="background:#dc2626"></em>城市有记录</span>
+        <span><em style="background:#f59e0b"></em>可点击城市</span>
+      </div>
+    </section>
+
+    <!-- 右：详情面板 -->
+    <div class="side" id="side">
+      <section class="card" id="city-card">
+        <div class="empty">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>
+          点击左侧地图上的省份或城市<br>查看景点与旅途记录
+        </div>
+      </section>
+    </div>
+  </div>
+</main>
+
+<!-- 数据大屏 -->
+<div id="dashboard">
+  <div class="dash-top">
+    <div class="dash-title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+      旅行足迹 · 数据大屏
+      <span class="sub" id="dash-updated"></span>
+    </div>
+    <button class="dash-back" id="btn-dash-back" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M11 18l-6-6 6-6"/></svg>返回地图
+    </button>
+  </div>
+
+  <div class="dash-wrap">
+    <!-- 关键数字 -->
+    <div class="dash-kpis">
+      <div class="kpi"><div class="k-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>踏足城市</div><div class="k-val" id="k-city">0<small>城</small></div><div class="k-foot" id="k-city-foot"></div></div>
+      <div class="kpi"><div class="k-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>足迹省份</div><div class="k-val" id="k-prov">0<small>省</small></div><div class="k-foot" id="k-prov-foot"></div></div>
+      <div class="kpi"><div class="k-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>记录景点</div><div class="k-val" id="k-spot">0<small>处</small></div><div class="k-foot" id="k-spot-foot"></div></div>
+      <div class="kpi"><div class="k-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>旅途照片</div><div class="k-val" id="k-photo">0<small>张</small></div><div class="k-foot" id="k-photo-foot"></div></div>
+    </div>
+
+    <!-- 主体：左排名 | 中地图 | 右标签云 -->
+    <div class="dash-grid">
+      <div class="dash-panel">
+        <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6-6 6 6"/><path d="M6 15l6-6 6 6"/></svg>足迹省份 TOP<span class="n">按景点数</span></h4>
+        <div class="rank-list" id="dash-rank"></div>
+      </div>
+
+      <div class="dash-panel dash-map">
+        <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>足迹地图<span class="n">绿色 = 已踏足</span></h4>
+        <div id="dash-map"></div>
+      </div>
+
+      <div class="dash-panel">
+        <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 9 9"/></svg>旅行标签<span class="n">点击高亮</span></h4>
+        <div class="tag-cloud" id="dash-tags"></div>
+      </div>
+    </div>
+
+    <!-- 底部时间轴 -->
+    <div class="dash-bottom">
+      <div class="dash-panel">
+        <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>旅行时间线<span class="n">按更新时间</span></h4>
+        <div class="timeline" id="dash-timeline"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+<div id="mask"></div>
+
+<script>
+(function () {
+  'use strict';
+  /* ===== 数据注入（由构建脚本写入） ===== */
+  var GEO = __GEO__;
+  var CITIES = __CITIES__;
+  var PROVINCE_INTRO = __INTRO__;
+  var CITY_GEO = __CITY_GEO__;
+
+  var STORE_KEY = 'travel_workbench_v1';
+  var state = { records: {} };  // key: "adcode|cityName" -> {intro, spots:[], updatedAt}
+
+  /* ===== 工具 ===== */
+  function $(s, r) { return (r || document).querySelector(s); }
+  function $$(s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); }
+  function esc(v) {
+    return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function toast(msg) {
+    var el = $('#toast'); el.textContent = msg; el.classList.add('on');
+    clearTimeout(toast._t); toast._t = setTimeout(function () { el.classList.remove('on'); }, 2200);
+  }
+  function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+  function keyOf(adcode, city) { return adcode + '|' + (city || ''); }
+  function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+  function todayStr() { var d = new Date(); return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
+  function fmtTime(v) { return v ? String(v).replace('T', ' ').slice(0, 16) : ''; }
+
+  /* ===== 存储 ===== */
+  // 只持久化业务数据（records），视图状态（view/zoom/选中项）不落盘，刷新后回到第一层
+  function save() {
+    try {
+      var persist = { records: state.records };
+      localStorage.setItem(STORE_KEY, JSON.stringify(persist));
+      setSync('本地已保存 · ' + statCount() + ' 处记录');
+    }
+    catch (e) { toast('保存失败（可能存储已满）'); }
+  }
+  function load() {
+    try {
+      var raw = localStorage.getItem(STORE_KEY);
+      if (raw) {
+        var data = JSON.parse(raw);
+        state.records = data.records || {};
+      }
+    } catch (e) { state.records = {}; }
+    if (!state.records) state.records = {};
+    // 刷新后重置视图：回到第一层（全国），缩放复位
+    state.view = { level: 'nation', adcode: null };
+    state.zoom = 1; state.cx = 500; state.cy = 380;
+  }
+  function setSync(text) { $('#sync-text').textContent = text; }
+
+  function statCount() {
+    var cities = 0, spots = 0;
+    Object.keys(state.records).forEach(function (k) {
+      var r = state.records[k];
+      if (r && r.spots && r.spots.length) { cities++; spots += r.spots.length; }
+    });
+    return cities + ' 城 · ' + spots + ' 景点';
+  }
+
+  /* ===== 地图渲染（三级下钻 + 缩放） ===== */
+  // 全国视图投影
+  function projectNation(lng, lat) {
+    var W = 1000, H = 760;
+    var x = (lng - 73) / (135 - 73) * W;
+    var y = (54 - lat) / (54 - 18) * H;
+    return [x, y];
+  }
+  function projectSouth(lng, lat) {
+    var x = (lng - 105) / (125 - 105) * 150;
+    var y = (23 - lat) / (23 - 3) * 150;
+    return [x, y];
+  }
+
+  // 计算一组坐标的经纬度边界
+  function boundsOf(polygons) {
+    var minX = 1e9, minY = 1e9, maxX = -1e9, maxY = -1e9;
+    polygons.forEach(function (poly) {
+      poly.forEach(function (ring) {
+        ring.forEach(function (pt) {
+          if (pt[0] < minX) minX = pt[0]; if (pt[0] > maxX) maxX = pt[0];
+          if (pt[1] < minY) minY = pt[1]; if (pt[1] > maxY) maxY = pt[1];
+        });
+      });
+    });
+    return { minLng: minX, maxLng: maxX, minLat: minY, maxLat: maxY };
+  }
+
+  // 通用等距投影（用于省市下钻）
+  function makeProject(bounds, W, H, pad) {
+    pad = pad || 0.06;
+    var lngSpan = (bounds.maxLng - bounds.minLng) || 1;
+    var latSpan = (bounds.maxLat - bounds.minLat) || 1;
+    var scale = Math.min(W / lngSpan, H / latSpan);
+    // 保持比例，居中
+    var w = lngSpan * scale, h = latSpan * scale;
+    var ox = (W - w) / 2, oy = (H - h) / 2;
+    return function (lng, lat) {
+      return [ox + (lng - bounds.minLng) * scale, oy + (bounds.maxLat - lat) * scale];
+    };
+  }
+
+  function isSouthRing(ring) {
+    if (!ring || !ring.length) return false;
+    var minLat = 99;
+    for (var i = 0; i < ring.length; i++) if (ring[i][1] < minLat) minLat = ring[i][1];
+    return minLat < 18;
+  }
+
+  function buildPath(polygons, proj) {
+    var parts = polygons.map(function (poly) {
+      var ps = poly.map(function (ring) {
+        if (!ring.length) return '';
+        return ring.map(function (pt, i) {
+          var p = proj(pt[0], pt[1]);
+          return (i === 0 ? 'M' : 'L') + p[0].toFixed(2) + ' ' + p[1].toFixed(2);
+        }).join('') + 'Z';
+      });
+      return ps.join(' ');
+    });
+    return parts.join(' ');
+  }
+
+  function splitGeom(g) {
+    var main = [], south = [];
+    var polys = g.type === 'MultiPolygon' ? g.coordinates : [g.coordinates];
+    polys.forEach(function (poly) {
+      var mRings = [], sRings = [];
+      poly.forEach(function (ring) {
+        if (isSouthRing(ring)) sRings.push(ring); else mRings.push(ring);
+      });
+      if (mRings.length) main.push(mRings);
+      if (sRings.length) south.push(sRings);
+    });
+    return { main: main, south: south };
+  }
+
+  // 当前视图层级：nation / province / city
+  function currentView() {
+    if (!state.view) state.view = { level: 'nation', adcode: null };
+    return state.view;
+  }
+
+  function renderMap() {
+    var cont = $('#map-container');
+    var view = currentView();
+    var paths = '', southPaths = '', dots = '', labels = '';
+    var proj;
+
+    if (view.level === 'nation') {
+      proj = projectNation;
+      var feats = GEO.features || [];
+      feats.forEach(function (f) {
+        var p = f.properties || {};
+        var adcode = String(p.adcode || '');
+        var name = p.name || '';
+        var g = f.geometry;
+        if (!g) return;
+        var sp = splitGeom(g);
+        var visited = hasCityRecord(adcode);
+        var active = state.activeAdcode === adcode && view.level === 'nation';
+        var cls = 'province' + (visited ? ' visited' : '') + (active ? ' active' : '');
+        if (sp.main.length) {
+          var d = buildPath(sp.main, projectNation);
+          if (d) paths += '<path class="' + cls + '" data-adcode="' + esc(adcode) + '" data-name="' + esc(name) + '" d="' + d + '"/>';
+        }
+        if (sp.south.length) {
+          var sd = buildPath(sp.south, projectSouth);
+          if (sd) southPaths += '<path class="' + cls + '" data-adcode="' + esc(adcode) + '" data-name="' + esc(name) + '" d="' + sd + '"/>';
+        }
+        // 省份名称标签（用几何质心坐标）
+        var pcSrc = p.centroid || p.center;
+        if (pcSrc && pcSrc.length === 2) {
+          var pc = projectNation(pcSrc[0], pcSrc[1]);
+          labels += '<text class="prov-label' + (visited ? ' has' : '') + '" x="' + pc[0].toFixed(2) + '" y="' + pc[1].toFixed(2) + '">' + esc(shortProv(name)) + '</text>';
+        }
+      });
+    } else if (view.level === 'province') {
+      // 省级下钻：显示该省所有市级区划边界
+      var provFeats = CITY_GEO[view.adcode] || [];
+      var allPoly = [];
+      var allPts = [];
+      provFeats.forEach(function (cf) {
+        if (cf.point) { allPts.push([cf.lng, cf.lat]); return; }
+        allPoly = allPoly.concat(cf.g || []);
+      });
+      // 投影：优先用边界，只有点数据时用点范围
+      if (allPoly.length) {
+        var b = boundsOf(allPoly);
+        proj = makeProject(b, 1000, 760);
+      } else if (allPts.length) {
+        var minLng = 1e9, maxLng = -1e9, minLat = 1e9, maxLat = -1e9;
+        allPts.forEach(function (p) {
+          if (p[0] < minLng) minLng = p[0]; if (p[0] > maxLng) maxLng = p[0];
+          if (p[1] < minLat) minLat = p[1]; if (p[1] > maxLat) maxLat = p[1];
+        });
+        proj = makeProject({ minLng: minLng - 0.3, maxLng: maxLng + 0.3, minLat: minLat - 0.3, maxLat: maxLat + 0.3 }, 1000, 760);
+      } else {
+        proj = makeProject({ minLng: 73, maxLng: 135, minLat: 18, maxLat: 54 }, 1000, 760);
+      }
+      // 第一遍：收集市级区划的标签信息（位置、面积、字号、是否已记录）
+      var labelItems = [];
+      provFeats.forEach(function (cf) {
+        var adcode = cf.adcode;
+        var name = cf.name;
+        var visited = hasCityRecord(adcode);
+        var active = state.activeAdcode === adcode && view.level === 'province';
+        if (cf.point) {
+          // 台湾县级市：用点表示
+          var pp = proj(cf.lng, cf.lat);
+          dots += '<circle class="city-dot' + (visited ? ' has' : '') + '" data-adcode="' + esc(adcode) +
+            '" data-city="' + esc(normalizeCity(name)) + '" cx="' + pp[0].toFixed(2) + '" cy="' + pp[1].toFixed(2) + '" r="' + (visited ? 5 : 3.5) + '"/>';
+          labels += '<text class="city-label' + (visited ? ' has' : '') + '" x="' + (pp[0] + 8).toFixed(2) + '" y="' + (pp[1] + 3.5).toFixed(2) + '">' + esc(name) + '</text>';
+          return;
+        }
+        var cls = 'province' + (visited ? ' visited' : '') + (active ? ' active' : '');
+        var d = buildPath(cf.g || [], proj);
+        if (d) paths += '<path class="' + cls + '" data-adcode="' + esc(adcode) + '" data-name="' + esc(name) + '" d="' + d + '"/>';
+        var area = polygonArea(cf.g || [], proj);
+        var cc = (cf.centroid || cf.center || []);
+        if (cc.length === 2) {
+          var cp = proj(cc[0], cc[1]);
+          var fs = area > 28000 ? 14 : (area > 12000 ? 12 : (area > 3500 ? 10 : 8));
+          var shortName = shortCity(name);
+          labelItems.push({ x: cp[0], y: cp[1], fs: fs, name: shortName, area: area, visited: visited });
+        }
+      });
+      // 第二遍：按面积降序，做标签碰撞检测（重叠则隐藏小标签）
+      labelItems.sort(function (a, b) { return b.area - a.area; });
+      var placed = [];
+      labelItems.forEach(function (it) {
+        var w = it.fs * it.name.length * 0.62; // 估算标签宽度
+        var h = it.fs * 1.3;
+        var overlap = false;
+        for (var i = 0; i < placed.length; i++) {
+          var p = placed[i];
+          var pw = p.fs * p.name.length * 0.62, ph = p.fs * 1.3;
+          if (Math.abs(it.x - p.x) < (w + pw) / 2 * 0.9 && Math.abs(it.y - p.y) < (h + ph) / 2 * 0.9) {
+            overlap = true; break;
+          }
+        }
+        if (!overlap) {
+          placed.push(it);
+          labels += '<text class="city-label' + (it.visited ? ' has' : '') + '" x="' + it.x.toFixed(2) + '" y="' + it.y.toFixed(2) +
+            '" font-size="' + it.fs + '" text-anchor="middle">' + esc(it.name) + '</text>';
+        }
+      });
+      // 显示该省旅游城市点（去重：跳过已在市级区划名称里的城市）
+      var cityNames = {};
+      provFeats.forEach(function (cf) { cityNames[shortCity(cf.name)] = true; });
+      (CITIES[view.adcode] || []).forEach(function (c) {
+        if (cityNames[c.name]) return; // 该城市已有市级区划，不重复显示点
+        var pos = proj(c.lng, c.lat);
+        addDot(view.adcode, c.name, pos[0], pos[1]);
+      });
+    } else if (view.level === 'city') {
+      // 市级下钻：显示该市区县边界
+      var provFeats2 = CITY_GEO[view.parent] || [];
+      var cf = null;
+      for (var i = 0; i < provFeats2.length; i++) if (provFeats2[i].adcode === view.adcode) { cf = provFeats2[i]; break; }
+      if (cf && cf.g) {
+        var b2 = boundsOf(cf.g);
+        proj = makeProject(b2, 1000, 760);
+        var visited2 = hasCityRecord(cf.adcode);
+        var d2 = buildPath(cf.g, proj);
+        if (d2) paths += '<path class="province' + (visited2 ? ' visited' : '') + '" data-adcode="' + esc(cf.adcode) + '" data-name="' + esc(cf.name) + '" d="' + d2 + '"/>';
+      }
+    }
+
+    function addDot(adcode, city, x, y) {
+      var has = hasSpot(adcode, city);
+      dots += '<circle class="city-dot' + (has ? ' has' : '') + '" data-adcode="' + esc(adcode) +
+        '" data-city="' + esc(city) + '" cx="' + x.toFixed(2) + '" cy="' + y.toFixed(2) + '" r="' + (has ? 5 : 3.5) + '"/>';
+      labels += '<text class="city-label' + (has ? ' has' : '') + '" x="' + (x + 8).toFixed(2) + '" y="' + (y + 3.5).toFixed(2) + '">' + esc(city) + '</text>';
+    }
+
+    // 南海缩略框（仅全国层显示）
+    var southBox = (view.level === 'nation' && southPaths)
+      ? '<g class="south-mini" transform="translate(828,588)">' +
+        '<rect x="-4" y="-4" width="158" height="158" fill="#f8fafc" stroke="#c7d7e8" stroke-width="1" rx="4"/>' +
+        '<g>' + southPaths + '</g>' +
+        '<text x="0" y="168" font-size="11" fill="#64748b" text-anchor="middle">南海诸岛</text>' +
+        '</g>'
+      : '';
+
+    var vb = calcViewBox();
+    cont.innerHTML = '<svg id="map-svg" viewBox="' + vb.x + ' ' + vb.y + ' ' + vb.w + ' ' + vb.h +
+      '" preserveAspectRatio="xMidYMid meet">' +
+      paths + dots + labels + southBox + '</svg>';
+
+    renderBreadcrumb();
+  }
+
+  // 缩放视图（viewBox 缩放，范围 1~8 倍）
+  function calcViewBox() {
+    var z = state.zoom || 1;
+    var cx = state.cx || 500, cy = state.cy || 380;
+    var w = 1000 / z, h = 760 / z;
+    var x = cx - w / 2, y = cy - h / 2;
+    // 边界限制
+    x = Math.max(-50, Math.min(1050 - w, x));
+    y = Math.max(-50, Math.min(810 - h, y));
+    return { x: Math.round(x * 100) / 100, y: Math.round(y * 100) / 100, w: Math.round(w * 100) / 100, h: Math.round(h * 100) / 100 };
+  }
+
+  function setZoom(z, cx, cy) {
+    z = Math.max(1, Math.min(8, z));
+    state.zoom = z;
+    if (cx != null) state.cx = cx; if (cy != null) state.cy = cy;
+    if (z === 1) { state.cx = 500; state.cy = 380; }
+    renderMap();
+  }
+
+  function renderBreadcrumb() {
+    var view = currentView();
+    var el = $('#map-crumb');
+    var html = '<span class="crumb" data-crumb="nation">中国</span>';
+    if (view.level === 'province' && view.adcode) {
+      html += '<span class="sep">›</span><span class="crumb" data-crumb="province">' + esc(provName(view.adcode)) + '</span>';
+    } else if (view.level === 'city') {
+      html += '<span class="sep">›</span><span class="crumb" data-crumb="province" data-adcode="' + esc(view.parent) + '">' + esc(provName(view.parent)) + '</span>';
+      html += '<span class="sep">›</span><span>' + esc(cityName(view.adcode, view.parent)) + '</span>';
+    }
+    el.innerHTML = html;
+  }
+
+  function cityName(adcode, parent) {
+    var feats = CITY_GEO[parent] || [];
+    for (var i = 0; i < feats.length; i++) if (feats[i].adcode === adcode) return feats[i].name;
+    return '';
+  }
+
+  function provName(adcode) {
+    var hit = (GEO.features || []).filter(function (f) { return String(f.properties.adcode) === adcode; })[0];
+    return hit ? hit.properties.name : '';
+  }
+  // 省份名缩写（去掉「省/市/自治区」等后缀，用于地图标签）
+  function shortProv(name) {
+    if (!name) return '';
+    return name.replace(/(省|市|维吾尔自治区|壮族自治区|回族自治区|自治区|特别行政区)$/, '');
+  }
+  function shortCity(name) {
+    if (!name) return '';
+    // 精确映射表：自治州/自治县简称
+    var MAP = {
+      '临夏回族自治州': '临夏', '乐东黎族自治县': '乐东', '伊犁哈萨克自治州': '伊犁',
+      '保亭黎族苗族自治县': '保亭', '克孜勒苏柯尔克孜自治州': '克孜勒苏', '凉山彝族自治州': '凉山',
+      '博尔塔拉蒙古自治州': '博尔塔拉', '大理白族自治州': '大理', '巴音郭楞蒙古自治州': '巴音郭楞',
+      '延边朝鲜族自治州': '延边', '彭水苗族土家族自治县': '彭水', '德宏傣族景颇族自治州': '德宏',
+      '怒江傈僳族自治州': '怒江', '恩施土家族苗族自治州': '恩施', '文山壮族苗族自治州': '文山',
+      '昌吉回族自治州': '昌吉', '昌江黎族自治县': '昌江', '果洛藏族自治州': '果洛',
+      '楚雄彝族自治州': '楚雄', '海北藏族自治州': '海北', '海南藏族自治州': '海南州',
+      '海西蒙古族藏族自治州': '海西', '湘西土家族苗族自治州': '湘西', '玉树藏族自治州': '玉树',
+      '琼中黎族苗族自治县': '琼中', '甘南藏族自治州': '甘南', '甘孜藏族自治州': '甘孜',
+      '白沙黎族自治县': '白沙', '石柱土家族自治县': '石柱', '秀山土家族苗族自治县': '秀山',
+      '红河哈尼族彝族自治州': '红河', '西双版纳傣族自治州': '西双版纳', '迪庆藏族自治州': '迪庆',
+      '酉阳土家族苗族自治县': '酉阳', '阿坝藏族羌族自治州': '阿坝', '陵水黎族自治县': '陵水',
+      '黄南藏族自治州': '黄南', '黔东南苗族侗族自治州': '黔东南', '黔南布依族苗族自治州': '黔南',
+      '黔西南布依族苗族自治州': '黔西南', '大兴安岭地区': '大兴安岭', '阿里地区': '阿里',
+      '喀什地区': '喀什', '和田地区': '和田', '塔城地区': '塔城', '阿克苏地区': '阿克苏',
+      '阿勒泰地区': '阿勒泰', '吐鲁番地区': '吐鲁番', '忠县': '忠县'
+    };
+    if (MAP[name]) return MAP[name];
+    // 通用规则：去后缀
+    var n = name.replace(/(市|地区|林区|特别行政区|自治州|自治县|区)$/, '');
+    return n;
+  }
+  // 计算多边形的投影面积（鞋带公式，用于判断标签是否过密）
+  function polygonArea(polygons, proj) {
+    var total = 0;
+    polygons.forEach(function (poly) {
+      poly.forEach(function (ring) {
+        if (ring.length < 3) return;
+        var a = 0;
+        for (var i = 0; i < ring.length; i++) {
+          var p1 = proj(ring[i][0], ring[i][1]);
+          var p2 = proj(ring[(i + 1) % ring.length][0], ring[(i + 1) % ring.length][1]);
+          a += p1[0] * p2[1] - p2[0] * p1[1];
+        }
+        total += Math.abs(a) / 2;
+      });
+    });
+    return total;
+  }
+
+  function hasSpot(adcode, city) {
+    // adcode 可能是省级或市级；统一用「省级 + 城市名」判断
+    var prov = findProvinceOf(adcode) || adcode;
+    var r = state.records[keyOf(prov, city)];
+    return !!(r && r.spots && r.spots.length);
+  }
+  // 判断某个市级区划是否「有记录」：精确匹配该市对应的城市记录，而非整个省
+  function hasCityRecord(adcode) {
+    // 省级：任意该省城市有记录即算「有记录」（用于全国层省份高亮）
+    if ((GEO.features || []).some(function (f) { return String(f.properties.adcode) === adcode; })) {
+      return Object.keys(state.records).some(function (k) {
+        if (k.indexOf(adcode + '|') !== 0) return false;
+        var r = state.records[k];
+        return !!(r && r.spots && r.spots.length);
+      });
+    }
+    // 市级：精确匹配该市名对应的记录
+    var prov = findProvinceOf(adcode);
+    if (!prov) return false;
+    var cityNameShort = cityShortByAdcode(adcode);
+    if (!cityNameShort) return false;
+    var r = state.records[keyOf(prov, cityNameShort)];
+    return !!(r && r.spots && r.spots.length);
+  }
+  // 根据市级 adcode 找到对应的城市简称（用于存储 key 匹配）
+  function cityShortByAdcode(adcode) {
+    for (var p in CITY_GEO) {
+      var feats = CITY_GEO[p] || [];
+      for (var i = 0; i < feats.length; i++) {
+        if (feats[i].adcode === adcode) {
+          return shortCity(feats[i].name);
+        }
+      }
+    }
+    return '';
+  }
+
+  /* ===== 详情面板 ===== */
+  function cityTitle(adcode, city) {
+    var prov = provName(adcode);
+    return city || prov;
+  }
+
+  function renderDetail() {
+    var card = $('#city-card');
+    var adcode = state.activeAdcode;
+    if (!adcode) {
+      card.innerHTML = '<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>点击左侧地图上的省份或城市<br>查看景点与旅途记录</div>';
+      return;
+    }
+    var city = state.activeCity || '';
+    var provAdcode = state.activeProv || adcode;
+    var key = keyOf(provAdcode, city);
+    var rec = state.records[key] || { intro: '', spots: [], updatedAt: '' };
+    var spots = rec.spots || [];
+    var prov = provName(provAdcode);
+    var title = city || prov;
+
+    var head = '<div class="city-head">' +
+      '<div class="av">' + esc((city || prov).slice(0, 1)) + '</div>' +
+      '<div><h3>' + esc(title) + '</h3>' +
+      '<div class="sub">' + (city ? esc(prov) + ' · ' : '') + (spots.length ? spots.length + ' 个景点' : '暂无景点记录') + (rec.updatedAt ? ' · 更新于 ' + fmtTime(rec.updatedAt) : '') + '</div></div></div>';
+
+    var meta = '<div class="city-meta">' +
+      (city ? '<span class="chip acc">' + esc(prov) + '</span>' : '') +
+      (spots.length ? '<span class="chip">' + spots.length + ' 个景点</span>' : '') +
+      (state.activeAdcode && !city ? '<span class="chip warn">点击城市圆点查看该城市</span>' : '') +
+      '</div>';
+
+    var introBox = '<div style="margin-top:12px">' +
+      '<div class="f"><label>城市简介</label>' +
+      '<textarea id="intro-input" placeholder="写写这座城给你的印象…">' + esc(rec.intro || '') + '</textarea></div>' +
+      '<div class="form-foot" style="margin-top:8px"><button class="btn sm" id="btn-save-intro" type="button">保存简介</button></div></div>';
+
+    var spotsHtml = spots.length
+      ? spots.map(function (sp, i) {
+          var imgs = (sp.imgs || []).map(function (im) {
+            return '<div class="im"><img src="' + im + '" alt=""><span class="im-x" data-act="del-img" data-i="' + i + '" data-src="' + esc(im) + '">×</span></div>';
+          }).join('');
+          var tags = (sp.tags || []).map(function (t) { return '<span class="tag">' + esc(t) + '</span>'; }).join('');
+          return '<div class="spot" data-i="' + i + '">' +
+            '<div class="spot-top"><span class="spot-name">' + esc(sp.name) + '</span>' +
+            (sp.date ? '<span class="spot-date">' + esc(sp.date) + '</span>' : '') +
+            '<button class="spot-del" type="button" data-act="del-spot" data-i="' + i + '">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V5h6v2"/><path d="M6 7l1 13h10l1-13"/></svg></button></div>' +
+            (sp.desc ? '<div class="spot-desc">' + esc(sp.desc) + '</div>' : '') +
+            (tags ? '<div class="spot-tags">' + tags + '</div>' : '') +
+            (imgs ? '<div class="spot-imgs">' + imgs + '</div>' : '') +
+            '<div class="spot-act">' +
+            '<button class="btn sm ghost" type="button" data-act="edit-spot" data-i="' + i + '">编辑</button>' +
+            '<button class="btn sm ghost" type="button" data-act="add-img" data-i="' + i + '">加图片</button>' +
+            '</div></div>';
+        }).join('')
+      : '<div class="empty" style="padding:14px">还没有景点，点下面「添加景点」记下第一个吧</div>';
+
+    var addBtn = '<button class="btn block" id="btn-add-spot" type="button" style="margin-top:12px">' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>添加景点</button>';
+
+    card.innerHTML = head + meta + introBox + '<hr>' +
+      '<div style="display:flex;align-items:center;gap:8px"><h3 style="font-size:14.5px;font-weight:700">景点</h3>' +
+      '<span class="chip" style="margin-left:auto">' + spots.length + '</span></div>' +
+      '<div id="spot-list" style="margin-top:10px">' + spotsHtml + '</div>' + addBtn;
+
+    bindDetail();
+  }
+
+  function bindDetail() {
+    var card = $('#city-card');
+    var intro = $('#intro-input');
+    if (intro) {
+      var timer = null;
+      intro.addEventListener('input', function () {
+        clearTimeout(timer); timer = setTimeout(autoSaveIntro, 400);
+      });
+    }
+    var saveBtn = $('#btn-save-intro');
+    if (saveBtn) saveBtn.addEventListener('click', function () { saveIntro(true); });
+    var addBtn = $('#btn-add-spot');
+    if (addBtn) addBtn.addEventListener('click', function () { openSpotModal(); });
+    card.addEventListener('click', function (e) {
+      var t = e.target.closest('[data-act]');
+      if (!t) return;
+      var act = t.getAttribute('data-act');
+      var i = parseInt(t.getAttribute('data-i'), 10);
+      if (act === 'del-spot') delSpot(i);
+      else if (act === 'edit-spot') openSpotModal(i);
+      else if (act === 'add-img') addImage(i);
+      else if (act === 'del-img') delImage(i, t.getAttribute('data-src'));
+    });
+  }
+
+  function currentKey() {
+    var provAdcode = state.activeProv || state.activeAdcode;
+    return keyOf(provAdcode, state.activeCity || '');
+  }
+  function currentRec() {
+    var k = currentKey();
+    if (!state.records[k]) state.records[k] = { intro: '', spots: [], updatedAt: '' };
+    return state.records[k];
+  }
+
+  function autoSaveIntro() {
+    var el = $('#intro-input'); if (!el) return;
+    currentRec().intro = el.value; currentRec().updatedAt = todayStr() + 'T' + new Date().toTimeString().slice(0, 5);
+    save(); refreshMap();
+  }
+  function saveIntro(showToast) {
+    var el = $('#intro-input'); if (!el) return;
+    currentRec().intro = el.value; currentRec().updatedAt = todayStr() + 'T' + new Date().toTimeString().slice(0, 5);
+    save(); if (showToast) toast('简介已保存');
+  }
+
+  function refreshMap() { renderMap(); }
+
+  /* ===== 景点弹窗 ===== */
+  function openSpotModal(i) {
+    var rec = currentRec();
+    var sp = (i != null && rec.spots[i]) ? rec.spots[i] : { name: '', desc: '', tags: [], imgs: [], date: '' };
+    var isEdit = i != null;
+    var imgHtml = (sp.imgs || []).map(function (im) {
+      return '<div class="im" style="position:relative;aspect-ratio:1;border-radius:9px;overflow:hidden;border:1px solid var(--line)">' +
+        '<img src="' + im + '" style="width:100%;height:100%;object-fit:cover">' +
+        '<span class="im-x" data-act="modal-del-img" data-src="' + esc(im) + '" style="position:absolute;top:4px;right:4px;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;cursor:pointer">×</span></div>';
+    }).join('');
+
+    var modal = $('#mask');
+    modal.innerHTML = '<div class="modal">' +
+      '<h3>' + (isEdit ? '编辑景点' : '添加景点') + '</h3>' +
+      '<div class="form-grid">' +
+      '<div class="f"><label>景点名称</label><input id="sp-name" type="text" placeholder="如 故宫、西湖、玉龙雪山" value="' + esc(sp.name) + '"></div>' +
+      '<div class="f"><label>游玩日期</label><input id="sp-date" type="date" value="' + esc(sp.date || '') + '"></div>' +
+      '<div class="f"><label>简介 / 游玩感受</label><textarea id="sp-desc" placeholder="写写这里有什么、玩什么、值不值得去">' + esc(sp.desc) + '</textarea></div>' +
+      '<div class="f"><label>标签（逗号分隔）</label><input id="sp-tags" type="text" placeholder="如 亲子, 徒步, 美食" value="' + esc((sp.tags || []).join(', ')) + '"></div>' +
+      '<div class="f"><label>图片</label>' +
+      '<div class="spot-imgs" id="sp-imgs" style="margin-top:6px">' + imgHtml + '</div>' +
+      '<button class="btn sm ghost" id="sp-add-img" type="button" style="margin-top:8px">上传图片</button>' +
+      '<input type="file" id="sp-img-file" accept="image/*" multiple class="hidden"></div>' +
+      '</div>' +
+      '<div class="row">' +
+      '<button class="btn ghost" id="sp-cancel" type="button">取消</button>' +
+      '<button class="btn" id="sp-save" type="button">保存</button></div></div>';
+    modal.classList.add('on');
+
+    var tmpImgs = (sp.imgs || []).slice();
+
+    $('#sp-cancel').addEventListener('click', function () { modal.classList.remove('on'); });
+    modal.addEventListener('click', function (e) {
+      if (e.target === modal) modal.classList.remove('on');
+    });
+    $('#sp-add-img').addEventListener('click', function () { $('#sp-img-file').click(); });
+    $('#sp-img-file').addEventListener('change', function (e) {
+      readImages(e.target.files, function (dataUrls) {
+        tmpImgs = tmpImgs.concat(dataUrls);
+        renderModalImgs();
+      });
+      e.target.value = '';
+    });
+    function renderModalImgs() {
+      $('#sp-imgs').innerHTML = tmpImgs.map(function (im) {
+        return '<div class="im" style="position:relative;aspect-ratio:1;border-radius:9px;overflow:hidden;border:1px solid var(--line)">' +
+          '<img src="' + im + '" style="width:100%;height:100%;object-fit:cover">' +
+          '<span class="im-x" data-act="modal-del-img" data-src="' + esc(im) + '" style="position:absolute;top:4px;right:4px;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;cursor:pointer">×</span></div>';
+      }).join('');
+    }
+    $('#sp-imgs').addEventListener('click', function (e) {
+      var t = e.target.closest('[data-act="modal-del-img"]');
+      if (!t) return;
+      var src = t.getAttribute('data-src');
+      tmpImgs = tmpImgs.filter(function (x) { return x !== src; });
+      renderModalImgs();
+    });
+
+    $('#sp-save').addEventListener('click', function () {
+      var name = $('#sp-name').value.trim();
+      if (!name) { toast('请填写景点名称'); return; }
+      var tags = $('#sp-tags').value.split(/[,，、]/).map(function (t) { return t.trim(); }).filter(Boolean);
+      var obj = { id: sp.id || uid(), name: name, date: $('#sp-date').value || '', desc: $('#sp-desc').value.trim(), tags: tags, imgs: tmpImgs };
+      if (isEdit) rec.spots[i] = obj; else rec.spots.push(obj);
+      rec.updatedAt = todayStr() + 'T' + new Date().toTimeString().slice(0, 5);
+      save();
+      modal.classList.remove('on');
+      renderDetail();
+      refreshMap();
+      toast('已保存');
+    });
+  }
+
+  function readImages(files, cb) {
+    if (!files || !files.length) return;
+    var list = Array.prototype.slice.call(files);
+    var out = [], done = 0;
+    list.forEach(function (f) {
+      if (f.size > 8 * 1024 * 1024) { toast('图片过大（>8MB），已跳过'); done++; return; }
+      var fr = new FileReader();
+      fr.onload = function () { out.push(fr.result); done++; if (done === list.length) cb(out); };
+      fr.readAsDataURL(f);
+    });
+  }
+
+  function addImage(i) {
+    var rec = currentRec();
+    var sp = rec.spots[i]; if (!sp) return;
+    var inp = document.createElement('input');
+    inp.type = 'file'; inp.accept = 'image/*'; inp.multiple = true;
+    inp.addEventListener('change', function (e) {
+      readImages(e.target.files, function (dataUrls) {
+        sp.imgs = (sp.imgs || []).concat(dataUrls);
+        rec.updatedAt = todayStr() + 'T' + new Date().toTimeString().slice(0, 5);
+        save(); renderDetail();
+        toast('已添加 ' + dataUrls.length + ' 张图片');
+      });
+    });
+    inp.click();
+  }
+  function delImage(i, src) {
+    var rec = currentRec();
+    var sp = rec.spots[i]; if (!sp) return;
+    sp.imgs = (sp.imgs || []).filter(function (x) { return x !== src; });
+    save(); renderDetail(); toast('已删除图片');
+  }
+  function delSpot(i) {
+    var rec = currentRec();
+    var sp = rec.spots[i]; if (!sp) return;
+    confirmBox('删除景点', '确定删除「' + sp.name + '」？删除后不可恢复。', function () {
+      rec.spots.splice(i, 1);
+      save(); renderDetail(); refreshMap(); toast('已删除');
+    });
+  }
+
+  function confirmBox(title, text, cb) {
+    var modal = $('#mask');
+    modal.innerHTML = '<div class="modal"><h3>' + esc(title) + '</h3><p style="color:var(--ink2);font-size:14px;margin:0 0 4px">' + esc(text) + '</p>' +
+      '<div class="row"><button class="btn ghost" id="cf-no" type="button">取消</button>' +
+      '<button class="btn danger" id="cf-yes" type="button">确认</button></div></div>';
+    modal.classList.add('on');
+    $('#cf-no').addEventListener('click', function () { modal.classList.remove('on'); });
+    $('#cf-yes').addEventListener('click', function () { modal.classList.remove('on'); cb(); });
+  }
+
+  /* ===== 导入导出 ===== */
+  function exportData() {
+    var payload = { app: '旅途记录工作台', version: 1, exportedAt: new Date().toISOString(), records: state.records };
+    var blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = '旅途记录备份-' + todayStr() + '.json';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
+    toast('备份已导出');
+  }
+  function importData(file) {
+    var fr = new FileReader();
+    fr.onload = function () {
+      var data;
+      try { data = JSON.parse(String(fr.result)); } catch (e) { toast('不是合法的备份文件'); return; }
+      var rec = data.records;
+      if (!rec || typeof rec !== 'object') { toast('备份里没有有效数据'); return; }
+      var keys = Object.keys(rec);
+      confirmBox('导入备份', '备份包含 ' + keys.length + ' 处记录。导入将覆盖当前本地数据，是否继续？', function () {
+        state.records = rec;
+        save(); renderMap(); renderDetail(); toast('已导入 ' + keys.length + ' 处记录');
+      });
+    };
+    fr.readAsText(file);
+  }
+
+  /* ===== 数据大屏 ===== */
+  // 聚合所有旅行记录
+  function collectTripData() {
+    var provs = {};   // 省级 adcode -> {name, spots, cities, photos}
+    var cityList = []; // {prov, provName, city, spots, updatedAt}
+    var tags = {};    // tag -> count
+    var totalSpots = 0, totalPhotos = 0, totalCities = 0;
+
+    Object.keys(state.records).forEach(function (k) {
+      var parts = k.split('|');
+      var provAd = parts[0], city = parts.slice(1).join('|');
+      var rec = state.records[k];
+      if (!rec || !rec.spots || !rec.spots.length) return;
+      var provName_ = provName(provAd);
+      if (!provs[provAd]) provs[provAd] = { name: provName_ || provAd, spots: 0, cities: 0, photos: 0, adcode: provAd };
+      provs[provAd].spots += rec.spots.length;
+      provs[provAd].cities += 1;
+      totalSpots += rec.spots.length;
+      totalCities += 1;
+
+      var photos = 0;
+      var travelDate = '';
+      rec.spots.forEach(function (sp) {
+        photos += (sp.imgs || []).length;
+        (sp.tags || []).forEach(function (t) { tags[t] = (tags[t] || 0) + 1; });
+        if (sp.date && (!travelDate || sp.date < travelDate)) travelDate = sp.date;
+      });
+      provs[provAd].photos += photos;
+      totalPhotos += photos;
+
+      cityList.push({ prov: provAd, provName: provName_ || provAd, city: city, spots: rec.spots.length, updatedAt: rec.updatedAt || '', travelDate: travelDate });
+    });
+
+    var provArr = Object.keys(provs).map(function (p) { return provs[p]; })
+      .sort(function (a, b) { return b.spots - a.spots; });
+
+    return { provs: provs, provArr: provArr, cityList: cityList, tags: tags, totalSpots: totalSpots, totalPhotos: totalPhotos, totalCities: totalCities };
+  }
+
+  function renderDashboard() {
+    var d = collectTripData();
+    // 更新时间
+    var latest = '';
+    d.cityList.forEach(function (c) { if (c.updatedAt > latest) latest = c.updatedAt; });
+    $('#dash-updated').textContent = latest ? ' · 更新于 ' + fmtTime(latest) : '';
+
+    // KPI
+    $('#k-city').innerHTML = d.totalCities + '<small>城</small>';
+    $('#k-prov').innerHTML = d.provArr.length + '<small>省</small>';
+    $('#k-spot').innerHTML = d.totalSpots + '<small>处</small>';
+    $('#k-photo').innerHTML = d.totalPhotos + '<small>张</small>';
+    $('#k-city-foot').textContent = '共 ' + Object.keys(state.records).length + ' 处记录';
+    $('#k-prov-foot').textContent = '覆盖全国 ' + (d.provArr.length ? ((d.provArr.length / 34 * 100).toFixed(0) + '%') : '0%');
+    $('#k-spot-foot').textContent = d.cityList.length ? '平均每城 ' + (d.totalSpots / d.cityList.length).toFixed(1) + ' 处景点' : '';
+    $('#k-photo-foot').textContent = d.totalSpots ? '平均每景点 ' + (d.totalPhotos / d.totalSpots).toFixed(1) + ' 张' : '';
+
+    // 省份排名
+    var rankHtml = '';
+    if (!d.provArr.length) {
+      rankHtml = '<div class="dash-empty"><p>暂无足迹，去地图记录一下吧</p></div>';
+    } else {
+      var maxSpots = d.provArr[0].spots;
+      d.provArr.slice(0, 10).forEach(function (p, i) {
+        var w = Math.max(8, (p.spots / maxSpots * 100).toFixed(0));
+        rankHtml += '<div class="rank-item" data-prov="' + esc(p.adcode) + '" title="点击查看该省详情">' +
+          '<div class="rank-idx">' + (i + 1) + '</div>' +
+          '<div class="rank-info"><div class="rank-name">' + esc(shortProv(p.name)) + '</div>' +
+          '<div class="rank-sub">' + p.cities + ' 城 · ' + p.photos + ' 图</div></div>' +
+          '<div class="rank-bar"><i style="width:' + w + '%"></i></div>' +
+          '<div class="rank-num">' + p.spots + '</div></div>';
+      });
+    }
+    $('#dash-rank').innerHTML = rankHtml;
+
+    // 标签云
+    var tagHtml = '';
+    var tagArr = Object.keys(d.tags).sort(function (a, b) { return d.tags[b] - d.tags[a]; });
+    if (!tagArr.length) {
+      tagHtml = '<div class="dash-empty"><p>暂无标签</p></div>';
+    } else {
+      var maxTag = d.tags[tagArr[0]];
+      tagArr.slice(0, 30).forEach(function (t, i) {
+        var size = 12 + Math.round((d.tags[t] / maxTag) * 8); // 12-20px
+        tagHtml += '<span class="tc tc-' + (i % 5) + '" style="font-size:' + size + 'px" data-tag="' + esc(t) + '" title="点击查看含此标签的景点">' + esc(t) + ' <small style="opacity:.6">' + d.tags[t] + '</small></span>';
+      });
+    }
+    $('#dash-tags').innerHTML = tagHtml;
+
+    // 时间轴
+    var tlHtml = '';
+    var sorted = d.cityList.slice().sort(function (a, b) {
+      var da = a.travelDate || ('9' + a.updatedAt);  // 有旅行日期优先，否则用更新日期兜底
+      var db = b.travelDate || ('9' + b.updatedAt);
+      return db.localeCompare(da);
+    });
+    if (!sorted.length) {
+      tlHtml = '<div class="dash-empty"><p>暂无记录</p></div>';
+    } else {
+      sorted.slice(0, 15).forEach(function (c) {
+        var dateStr = c.travelDate ? '🚩 ' + c.travelDate : (c.updatedAt ? fmtTime(c.updatedAt) : '未标注时间');
+        tlHtml += '<div class="tl-item" data-prov="' + esc(c.prov) + '" data-city="' + esc(c.city) + '" title="点击查看该城市详情">' +
+          '<div class="tl-date">' + dateStr + '</div>' +
+          '<div class="tl-name">' + esc(c.city) + '</div>' +
+          '<div class="tl-sub">' + esc(c.provName) + '</div>' +
+          '<div class="tl-spots">' + c.spots + ' 处景点</div></div>';
+      });
+    }
+    $('#dash-timeline').innerHTML = tlHtml;
+
+    // 大屏足迹地图
+    renderDashMap(d.provs);
+  }
+
+  function renderDashMap(provs) {
+    var cont = $('#dash-map');
+    var paths = '', dots = '', labels = '', southPaths = '';
+    var feats = GEO.features || [];
+    feats.forEach(function (f) {
+      var p = f.properties || {};
+      var adcode = String(p.adcode || '');
+      var name = p.name || '';
+      var g = f.geometry;
+      if (!g) return;
+      var sp = splitGeom(g);
+      var visited = !!provs[adcode];
+      var cls = 'province' + (visited ? ' visited' : '');
+      var dataAttr = visited ? ' data-prov="' + esc(adcode) + '"' : '';
+      if (sp.main.length) {
+        var d = buildPath(sp.main, projectNation);
+        if (d) paths += '<path class="' + cls + '"' + dataAttr + ' d="' + d + '"/>';
+      }
+      if (sp.south.length) {
+        var sd = buildPath(sp.south, projectSouth);
+        if (sd) southPaths += '<path class="' + cls + '"' + dataAttr + ' d="' + sd + '"/>';
+      }
+      // 省份名
+      var pcSrc = p.centroid || p.center;
+      if (pcSrc && pcSrc.length === 2) {
+        var pc = projectNation(pcSrc[0], pcSrc[1]);
+        labels += '<text class="prov-label' + (visited ? ' has' : '') + '" x="' + pc[0].toFixed(2) + '" y="' + pc[1].toFixed(2) + '">' + esc(shortProv(name)) + '</text>';
+      }
+    });
+    // 有记录的城市点
+    Object.keys(state.records).forEach(function (k) {
+      var rec = state.records[k];
+      if (!rec || !rec.spots || !rec.spots.length) return;
+      var parts = k.split('|');
+      var provAd = parts[0];
+      var city = parts.slice(1).join('|');
+      // 找城市坐标
+      var cs = CITIES[provAd] || [];
+      var hit = null;
+      for (var i = 0; i < cs.length; i++) if (cs[i].name === city) { hit = cs[i]; break; }
+      if (hit) {
+        var pos = projectNation(hit.lng, hit.lat);
+        dots += '<circle class="city-dot has" data-prov="' + esc(provAd) + '" data-city="' + esc(city) + '" cx="' + pos[0].toFixed(2) + '" cy="' + pos[1].toFixed(2) + '" r="4.5"/>';
+      }
+    });
+
+    var southBox = southPaths
+      ? '<g class="south-mini" transform="translate(828,588)">' +
+        '<rect x="-4" y="-4" width="158" height="158" fill="#f8fafc" stroke="#c7d7e8" stroke-width="1" rx="4"/>' +
+        '<g>' + southPaths + '</g>' +
+        '<text x="0" y="168" font-size="11" fill="#64748b" text-anchor="middle">南海诸岛</text></g>'
+      : '';
+
+    cont.innerHTML = '<svg id="dash-map-svg" viewBox="0 0 1000 760" preserveAspectRatio="xMidYMid meet">' +
+      paths + dots + labels + southBox + '</svg>';
+  }
+
+  // 展示详情（弹窗形式）
+  function showDetail(type, prov, city, tag) {
+    var html = '';
+    var title = '';
+
+    if (type === 'prov') {
+      // 省份详情：该省所有城市 + 景点
+      var provName_ = provName(prov) || prov;
+      title = shortProv(provName_) + ' · 足迹详情';
+      var cities = [];
+      Object.keys(state.records).forEach(function (k) {
+        if (k.indexOf(prov + '|') !== 0) return;
+        var rec = state.records[k];
+        if (!rec || !rec.spots || !rec.spots.length) return;
+        cities.push({ city: k.split('|').slice(1).join('|'), rec: rec });
+      });
+      var totSpots = 0, totPhotos = 0;
+      cities.forEach(function (c) { totSpots += c.rec.spots.length; c.rec.spots.forEach(function (s) { totPhotos += (s.imgs || []).length; }); });
+      html += '<div class="dd-prov-summary">' +
+        '<div class="dd-stat"><b>' + cities.length + '</b><i>城市</i></div>' +
+        '<div class="dd-stat"><b>' + totSpots + '</b><i>景点</i></div>' +
+        '<div class="dd-stat"><b>' + totPhotos + '</b><i>照片</i></div></div>';
+      if (!cities.length) {
+        html += '<div class="dd-empty">该省暂无记录</div>';
+      } else {
+        html += '<div class="dd-city">';
+        cities.forEach(function (c) {
+          html += '<div class="dd-city-group"><div class="dd-city-name"><span class="dot"></span>' + esc(c.city) + '<span class="cnt">' + c.rec.spots.length + ' 景点</span></div>';
+          c.rec.spots.forEach(function (s) {
+            html += spotDetailHtml(s);
+          });
+          html += '</div>';
+        });
+        html += '</div>';
+      }
+    } else if (type === 'city') {
+      // 城市详情
+      var rec2 = state.records[keyOf(prov, city)];
+      var provName2 = provName(prov);
+      title = city + ' · 景点详情';
+      if (!rec2 || !rec2.spots || !rec2.spots.length) {
+        html += '<div class="dd-empty">该城市暂无记录</div>';
+      } else {
+        html += '<div class="dd-prov-summary">' +
+          '<div class="dd-stat"><b>' + rec2.spots.length + '</b><i>景点</i></div>' +
+          '<div class="dd-stat"><b>' + rec2.spots.reduce(function (n, s) { return n + (s.imgs || []).length; }, 0) + '</b><i>照片</i></div>' +
+          '<div class="dd-stat"><b>' + esc(provName2) + '</b><i>所属省份</i></div></div>';
+        if (rec2.intro) html += '<div class="dd-spot" style="border:0;padding-top:0"><div class="dd-spot-info"><div class="dd-spot-desc" style="-webkit-line-clamp:unset">' + esc(rec2.intro) + '</div></div></div>';
+        rec2.spots.forEach(function (s) {
+          html += spotDetailHtml(s);
+        });
+      }
+    } else if (type === 'tag') {
+      // 标签详情：所有含该标签的景点
+      title = '标签「' + tag + '」 · 相关景点';
+      var matches = [];
+      Object.keys(state.records).forEach(function (k) {
+        var rec3 = state.records[k];
+        if (!rec3 || !rec3.spots) return;
+        var parts = k.split('|');
+        rec3.spots.forEach(function (s) {
+          if ((s.tags || []).indexOf(tag) >= 0) {
+            matches.push({ city: parts.slice(1).join('|'), prov: parts[0], spot: s });
+          }
+        });
+      });
+      if (!matches.length) {
+        html += '<div class="dd-empty">没有景点使用此标签</div>';
+      } else {
+        html += '<div class="dd-prov-summary"><div class="dd-stat"><b>' + matches.length + '</b><i>相关景点</i></div></div>';
+        matches.forEach(function (m) {
+          html += spotDetailHtml(m.spot, m.city);
+        });
+      }
+    }
+
+    // 弹窗展示
+    var mask = $('#mask');
+    mask.innerHTML = '<div class="modal modal-wide">' +
+      '<div class="dash-detail-head"><h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 3"/></svg><span>' + esc(title) + '</span></h4>' +
+      '<button class="dash-detail-close" id="dd-close" type="button">×</button></div>' +
+      '<div class="dash-detail-body">' + html + '</div></div>';
+    mask.classList.add('on');
+
+    $('#dd-close').addEventListener('click', function () { mask.classList.remove('on'); });
+    mask.addEventListener('click', function (e) { if (e.target === mask) mask.classList.remove('on'); });
+  }
+
+  // 单个景点的详情 HTML（含日期）
+  function spotDetailHtml(s, cityNote) {
+    var thumb = (s.imgs && s.imgs[0])
+      ? '<img src="' + s.imgs[0] + '" alt="">'
+      : '<span class="ph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg></span>';
+    var tags = (s.tags || []).map(function (t) { return '<span class="t">' + esc(t) + '</span>'; }).join('');
+    var note = cityNote ? ' <span style="color:var(--ink3);font-weight:400;font-size:11px">· ' + esc(cityNote) + '</span>' : '';
+    return '<div class="dd-spot"><div class="s-thumb">' + thumb + '</div>' +
+      '<div class="dd-spot-info"><div class="dd-spot-name">' + esc(s.name) + note + '</div>' +
+      (s.date ? '<div class="dd-spot-date">' + esc(s.date) + '</div>' : '') +
+      (s.desc ? '<div class="dd-spot-desc">' + esc(s.desc) + '</div>' : '') +
+      (tags ? '<div class="dd-spot-tags">' + tags + '</div>' : '') + '</div></div>';
+  }
+
+  function hideDetail() {
+    var mask = $('#mask');
+    mask.classList.remove('on');
+  }
+
+
+  function showDashboard() {
+    document.querySelector('.topbar').style.display = 'none';
+    document.querySelector('.layout').style.display = 'none';
+    document.querySelector('footer') && (document.querySelector('footer').style.display = 'none');
+    var dash = $('#dashboard');
+    dash.classList.add('on');
+    hideDetail();  // 重置详情面板
+    renderDashboard();
+    window.scrollTo(0, 0);
+  }
+  function hideDashboard() {
+    var dash = $('#dashboard');
+    dash.classList.remove('on');
+    document.querySelector('.topbar').style.display = '';
+    document.querySelector('.layout').style.display = '';
+    document.querySelector('footer') && (document.querySelector('footer').style.display = '');
+    hideDetail();
+  }
+
+
+  function bindEvents() {
+    var cont = $('#map-container');
+    cont.addEventListener('click', function (e) {
+      var view = currentView();
+      var t = e.target.closest('[data-adcode]');
+      if (!t) return;
+      var adcode = t.getAttribute('data-adcode');
+      var city = t.getAttribute('data-city');
+
+      if (city) {
+        // 点击城市点：选中城市查看详情（不下钻）
+        selectCity(adcode, city);
+      } else if (view.level === 'nation') {
+        // 点击省份：下钻到该省
+        goProvince(adcode);
+      } else if (view.level === 'province') {
+        // 点击市级区划：直接选中该市查看记录（不再下钻）
+        var shortName = cityShortByAdcode(adcode);
+        selectCity(adcode, shortName || (t.getAttribute('data-name') || ''));
+      }
+    });
+
+    // 面包屑点击返回
+    $('#map-crumb').addEventListener('click', function (e) {
+      var c = e.target.closest('[data-crumb]');
+      if (!c) return;
+      var target = c.getAttribute('data-crumb');
+      if (target === 'nation') goNation();
+      else if (target === 'province') {
+        var ac = c.getAttribute('data-adcode') || state.view.parent;
+        if (ac) goProvince(ac);
+      }
+    });
+
+    // 缩放控件
+    $('#zoom-in').addEventListener('click', function () { setZoom((state.zoom || 1) * 1.6); });
+    $('#zoom-out').addEventListener('click', function () { setZoom((state.zoom || 1) / 1.6); });
+    $('#zoom-reset').addEventListener('click', function () { setZoom(1); });
+
+    // 滚轮缩放
+    cont.addEventListener('wheel', function (e) {
+      e.preventDefault();
+      var svg = $('#map-svg');
+      var rect = svg.getBoundingClientRect();
+      var mx = (e.clientX - rect.left) / rect.width * 1000;
+      var my = (e.clientY - rect.top) / rect.height * 760;
+      var z = state.zoom || 1;
+      var nz = e.deltaY < 0 ? z * 1.2 : z / 1.2;
+      setZoom(nz, mx, my);
+    }, { passive: false });
+
+    $('#btn-export').addEventListener('click', exportData);
+    $('#btn-import').addEventListener('click', function () { $('#file-import').click(); });
+    $('#file-import').addEventListener('change', function (e) {
+      var f = e.target.files && e.target.files[0];
+      if (f) importData(f);
+      e.target.value = '';
+    });
+
+    // 数据大屏
+    $('#btn-dashboard').addEventListener('click', showDashboard);
+    $('#btn-dash-back').addEventListener('click', hideDashboard);
+
+    // 大屏详情点击（事件委托）
+    $('#dash-rank').addEventListener('click', function (e) {
+      var it = e.target.closest('.rank-item[data-prov]');
+      if (it) showDetail('prov', it.getAttribute('data-prov'));
+    });
+    $('#dash-timeline').addEventListener('click', function (e) {
+      var it = e.target.closest('.tl-item[data-prov]');
+      if (it) showDetail('city', it.getAttribute('data-prov'), it.getAttribute('data-city'));
+    });
+    $('#dash-tags').addEventListener('click', function (e) {
+      var t = e.target.closest('.tc[data-tag]');
+      if (t) showDetail('tag', null, null, t.getAttribute('data-tag'));
+    });
+    $('#dash-map').addEventListener('click', function (e) {
+      var t = e.target.closest('[data-prov]');
+      if (!t) return;
+      var city = t.getAttribute('data-city');
+      if (city) showDetail('city', t.getAttribute('data-prov'), city);
+      else showDetail('prov', t.getAttribute('data-prov'));
+    });
+  }
+
+  function goNation() {
+    state.view = { level: 'nation', adcode: null };
+    state.zoom = 1; state.cx = 500; state.cy = 380;
+    renderMap();
+    // 保留当前选中城市详情
+    $('#map-hint').textContent = '点击省份 / 城市查看';
+  }
+  function goProvince(adcode) {
+    state.view = { level: 'province', adcode: adcode };
+    state.zoom = 1; state.cx = 500; state.cy = 380;
+    renderMap();
+    $('#map-hint').textContent = '点击市查看景点记录';
+  }
+  function goCity(adcode, parent) {
+    state.view = { level: 'city', adcode: adcode, parent: parent };
+    state.zoom = 1; state.cx = 500; state.cy = 380;
+    var name = cityName(adcode, parent);
+    // 规范化城市名：去掉后缀「市」匹配旅游城市
+    var clean = normalizeCity(name);
+    selectCity(adcode, clean);
+  }
+  function normalizeCity(name) {
+    if (!name) return '';
+    return name.replace(/(市|地区|自治州|盟|特别行政区|林区)$/, '');
+  }
+  function selectCity(adcode, city) {
+    state.activeAdcode = adcode;
+    state.activeCity = city || '';
+    // 记录所属省份（用于详情面板显示）
+    state.activeProv = findProvinceOf(adcode);
+    renderDetail();
+    renderMap();
+    $('#map-hint').textContent = '当前：' + (city || '');
+  }
+  // 根据市级/省级 adcode 找所属省份
+  function findProvinceOf(adcode) {
+    // 如果是省级
+    if ((GEO.features || []).some(function (f) { return String(f.properties.adcode) === adcode; })) {
+      return adcode;
+    }
+    // 市级：遍历 CITY_GEO
+    for (var p in CITY_GEO) {
+      var feats = CITY_GEO[p] || [];
+      for (var i = 0; i < feats.length; i++) if (feats[i].adcode === adcode) return p;
+    }
+    return null;
+  }
+
+  /* ===== 启动 ===== */
+  function boot() {
+    load();          // 恢复业务数据 + 重置视图到第一层（全国）
+    bindEvents();
+    renderMap();
+    setSync(statCount());
+    // 默认选中北京，给右侧一个初始焦点
+    state.activeAdcode = '110000';
+    state.activeCity = '北京';
+    state.activeProv = '110000';
+    renderDetail();
+    renderMap();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+  else boot();
+})();
+</script>
+</body>
+</html>
